@@ -38,4 +38,14 @@ There is a Premium version in development.
 The free GUI has no password or SSL enabled by default. To check how 
 to enable these setting visit. https://www.remotesyslog.com/legacy/
 
+6. Installation
+a. Install a clean debian 9.x or Ubuntu 18.04.2 distro
+b. Run the following commands:
+    - git clone 
+    - cd Remote-Syslog-Version-2-Basic
+    - chmod +x rsinstaller
+    - ./rsinstaller
+    - Chose option 1 to install the core
+    - Chose option 10 to install the free GUI
+
 6. More information: https://www.remotesyslog.com/
