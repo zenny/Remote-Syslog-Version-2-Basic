@@ -41,7 +41,7 @@ to enable these setting visit. https://www.remotesyslog.com/legacy/
 6. Installation
 a. Install a clean debian 9.x or Ubuntu 18.04.2 distro
 b. Run the following commands:
-    - git clone 
+    - git clone https://github.com/tslenter/Remote-Syslog-Version-2-Basic.git
     - cd Remote-Syslog-Version-2-Basic
     - chmod +x rsinstaller
     - ./rsinstaller
