@@ -81,8 +81,8 @@ else
 fi
 }
 
-function legacygui() {
-    echo "Starting installation legacy GUI ..."
+function freegui() {
+    echo "Starting installation free GUI ..."
     apt -y install apache2 apache2-utils php libapache2-mod-php
     check_package "apache2"
     check_package "apache2-utils"
@@ -90,7 +90,7 @@ function legacygui() {
     check_package "libapache2-mod-php"
     echo "Remove default GUI website ..."
     rm -rf $APACHCONF/index.html
-    echo "Add legacy GUI website ..."
+    echo "Add free GUI website ..."
     cp -rf $RSDEST/favicon.ico $APACHCONF/
     cp -rf $RSDEST/index.php $APACHCONF/
     cp -rf $RSDEST/indexs.php $APACHCONF/
@@ -106,17 +106,17 @@ function legacygui() {
     echo "Done ..."
 }
 
-function legacyguiremove() {
-    echo "Check if legacy GUI is installed"
+function freeguiremove() {
+    echo "Check if free GUI is installed"
     check_file $APACHCONF/loaddata.php
-    echo "Removing legacy GUI website ..."
+    echo "Removing free GUI website ..."
     rm -rf $APACHCONF/favicon.ico
     rm -rf $APACHCONF/index.php
     rm -rf $APACHCONF/indexs.php
     rm -rf $APACHCONF/jquery-latest.js
     rm -rf $APACHCONF/loaddata.php
 	rm -rf $APACHCONF/remote_syslog
-    echo "Removing installation legacy GUI ..."
+    echo "Removing installation free GUI ..."
 	if [ -e "$RSBIN/rsinstaller" ]; then
 	    echo "Core still installed ..."
 		apt -y purge apache2 apache2-utils php libapache2-mod-php
@@ -250,7 +250,7 @@ function coreremove() {
 	cp -rf $VLOG/remote_syslog $VLOG/remote_syslog_uninstall && rm -rf $VLOG/remote_syslog
 	echo "Moved files to $VLOG/remote_syslog_uninstall .."
     if [ -e "$APACHCONF/loaddata.php" ]; then
-        legacyguiremove
+        freeguiremove
     else
         echo "No GUI found, remove done ..."
         exit
@@ -378,7 +378,7 @@ cp -rf $RSPATH $RSDEST
 clear
 banner
 PS3='Please enter your choice: '
-options=("Core installation" "Core removal" "Upgrade" "Reconfigure services" "Restore default configuration" "Add local syslog to Remote Syslog" "Remove local syslog to Remote Syslog" "Set new memory PHP limit of 512M" "Set default PHP memory limit of 128M" "Install legacy GUI" "Remove legacy GUI" "Quit")
+options=("Core installation" "Core removal" "Upgrade" "Reconfigure services" "Restore default configuration" "Add local syslog to Remote Syslog" "Remove local syslog to Remote Syslog" "Set new memory PHP limit of 512M" "Set default PHP memory limit of 128M" "Install free GUI" "Remove free GUI" "Quit")
 select opt in "${options[@]}"
 do
     case $opt in
@@ -441,17 +441,17 @@ do
 		restorephplimit
 		exit
 		;;
-        "Install legacy GUI")
+        "Install free GUI")
 		clear
 		banner
         pre_install
-		legacygui
+		freegui
         exit
         ;;
-        "Remove legacy GUI")
+        "Remove free GUI")
         clear
 		banner
-        legacyguiremove
+        freeguiremove
         exit
         ;;
         "Quit")
