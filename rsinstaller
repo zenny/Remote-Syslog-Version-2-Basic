@@ -263,7 +263,7 @@ function upgrade() {
    echo "Starting upgrade ..."
    echo "Download installation ..."
    git clone --branch master https://github.com/tslenter/Remote-Syslog-Version-2-Basic.git $RSTMP/rs
-   echo "
+   echo "Check if download is successfull"
    if [ -d "$RSTMP/rs" ]; then
       echo "Continue installation ..."
    else
