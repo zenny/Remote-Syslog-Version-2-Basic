@@ -271,7 +271,7 @@ function upgrade() {
       exit
    fi
    cp -rf $RSTMP/rs/* $RSDEST
-   rm -rf $RSPATH
+   rm -rf $RSTMP/rs
    echo "Start update ..."
    echo "Deploying application for CLI logging ..."
    cp -rf $RSDEST/rsview $RSBIN/rsview
