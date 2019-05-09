@@ -300,8 +300,6 @@ function upgrade() {
 function changedefault() {
    echo "Reconfigure default values ..."
    cp -rf $RSCONF/syslog-ng $SYSLOGCONF/99-remote.conf
-   echo "Check if mysql for GUI is deployed ..."
-   guirestorechange $SYSLOGCONF/991-remote-mysql.conf
    echo "Restart syslog-ng ..."
    service syslog-ng restart
    echo "Set logrotation ..."
@@ -313,8 +311,6 @@ function changedefault() {
 function restoredefault() {
    echo "Restore default syslog-ng values..."
    cp -rf $RSCONF/syslog-ngdefault $SYSLOGCONF/99-remote.conf
-   echo "Restore SQL for default GUI if deployed ..."
-   guirestoredefault $SYSLOGCONF/991-remote-mysql.conf
    echo "Restart syslog-ng ..."
    service syslog-ng restart
    echo "Restore default logrotation ..."
