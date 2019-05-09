@@ -1,0 +1,462 @@
+#!/bin/bash
+
+#License:
+#"Remote Syslog" is a free application what can be used to view syslog messages.
+#Copyright (C) 2019 Tom Slenter, Ronald Gerits, YouLi
+#
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License.
+#
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+#For more information contact the author:
+#Name author: Tom Slenter
+#E-mail: info@remotesyslog.com
+
+function banner() {
+   echo ""
+   echo "#################################################"
+   echo "#Remote Syslog Basic                            #"
+   echo "#More information: remotesyslog.com             #"
+   echo "#Remote Syslog installation                     #"
+   echo "#Version: 2.0 ALPHA                             #"
+   echo "#Donate XRP: rHdkpJr3qYqBYY3y3S9ZMr4cFGpgP1eM6B #"
+   echo "#################################################"
+   echo ""
+}
+
+if ! [ $(id -u) = 0 ]; then
+    clear
+    banner
+    echo "This installation must be run as root!"
+    echo ""
+    exit 1
+fi
+
+function check_package() {
+echo "Check package $1"
+dpkg-query -l $1 > /dev/null 2>&1
+if [ $? = 0 ]
+then
+    echo "Installation found ..."
+else
+    echo "Installation failed, abort ..."
+    exit
+fi
+}
+
+function check_file() {
+file=$1
+if [ -e "$file" ]; then
+    echo "File: $1 exists, continue installation ..."
+else
+    echo "File: $1 does not exist, exit ..."
+    exit
+fi
+}
+
+function mod_activ() {
+file=$1
+if [ -e "$file" ]; then
+    echo "Module activated ..."
+else
+    echo "Module not activated ..."
+fi
+}
+
+function check_file_reverse() {
+file=$1
+if [ -e "$file" ]; then
+    echo "File: $1 exists, module already installed? Exiting ..."
+	exit
+else
+    echo "File: $1 does not exist, continue installation ..."
+fi
+}
+
+function legacygui() {
+    echo "Starting installation legacy GUI ..."
+    apt -y install apache2 apache2-utils php libapache2-mod-php
+    check_package "apache2"
+    check_package "apache2-utils"
+    check_package "php"
+    check_package "libapache2-mod-php"
+    echo "Remove default GUI website ..."
+    rm -rf $APACHCONF/index.html
+    echo "Add legacy GUI website ..."
+    cp -rf $RSDEST/favicon.ico $APACHCONF/
+    cp -rf $RSDEST/index.php $APACHCONF/
+    cp -rf $RSDEST/indexs.php $APACHCONF/
+    cp -rf $RSDEST/jquery-latest.js $APACHCONF/
+    cp -rf $RSDEST/loaddata.php $APACHCONF/
+    check_file $APACHCONF/favicon.ico
+    check_file $APACHCONF/index.php
+    check_file $APACHCONF/indexs.php
+    check_file $APACHCONF/jquery-latest.js
+    check_file $APACHCONF/loaddata.php
+    echo "Set archive symlink ..."
+    ln -s $VLOG/remote_syslog $APACHCONF/
+    echo "Done ..."
+}
+
+function legacyguiremove() {
+    echo "Check if legacy GUI is installed"
+    check_file $APACHCONF/loaddata.php
+    echo "Removing legacy GUI website ..."
+    rm -rf $APACHCONF/favicon.ico
+    rm -rf $APACHCONF/index.php
+    rm -rf $APACHCONF/indexs.php
+    rm -rf $APACHCONF/jquery-latest.js
+    rm -rf $APACHCONF/loaddata.php
+	rm -rf $APACHCONF/remote_syslog
+    echo "Removing installation legacy GUI ..."
+	if [ -e "$RSBIN/rsinstaller" ]; then
+	    echo "Core still installed ..."
+		apt -y purge apache2 apache2-utils php libapache2-mod-php
+		apt -y install syslog-ng
+		apt -y autoremove
+	else
+		echo "No core found ..."
+	    apt -y purge apache2 apache2-utils php libapache2-mod-php
+		apt -y install rsyslog
+		apt -y autoremove
+	fi
+    echo "Done ..."
+}
+
+function debpackage() {
+    echo "Check if Remote Syslog is installed ..."
+    check_file_reverse $RSBIN/rsinstaller
+    echo "Notice: This installation is tested for Ubuntu Server 18.04 LTS and Debian 9.x ..."
+    echo "Starting installation ..."
+    echo "Update installer cache ..."
+    if apt-add-repository multiverse > /dev/null 2>&1 ; then
+         printf 'Multiverse command succeeded\n'
+         apt-add-repository multiverse
+    else
+         printf 'Multiverse not found ...\n'
+    fi
+    apt update
+    echo "Checking dependencies ..."
+    apt -y purge rsyslog
+    apt -y install syslog-ng colortail wget logrotate grep tar
+}
+
+function checkinstallationcore() {
+    echo "Check CLI application 1X ..."
+    check_file $RSBIN/rsview
+    echo "Check installer 1X ..."
+    check_file $RSBIN/rsinstaller
+    echo "Check logrotate 1X ..."
+    check_file /etc/logrotate.d/remotelog
+    echo "Check colortail 1X ..."
+    check_file /etc/colortail/conf.colortail
+    echo "Check syslog-ng 1X ..."
+    check_file $SYSLOGCONF/99-remote.conf
+    echo "Check remote_log dummy file 1X ..."
+    check_file $VLOG/remote_syslog/remote_syslog.log
+    echo "Check reconfiguration files 7X ..."
+    check_file $RSCONF/syslog-ng
+    check_file $RSCONF/logrotate
+    check_file $RSCONF/colortail
+    check_file $RSCONF/syslog-ngdefault
+    check_file $RSCONF/logrotatedefault
+    check_file $RSCONF/colortaildefault
+    check_file $RSCONF/syslog-ng-localdefault
+    echo "Optional: check if debug module is activated:"
+    mod_activ $SYSLOGCONF/99-remote-local.conf
+    exit
+}
+
+function pre_install() {
+    echo "Check packages installations  ..."
+    check_package "syslog-ng"
+    check_package "colortail"
+    check_package "wget"
+    check_package "logrotate"
+    check_package "grep"
+    check_package "tar"
+    check_package "git"
+}
+
+function coreinstall() {
+    echo "Starting core installation ..."
+    echo "Creating dummy remote_syslog file ..."
+    mkdir $VLOG/remote_syslog/
+    touch $VLOG/remote_syslog/remote_syslog.log
+    echo "Set dummy remote_syslog file permissions ..."
+    chown www-data:www-data $VLOG/remote_syslog/
+    chown www-data:www-data $VLOG/remote_syslog/remote_syslog.log
+    echo "Configuring syslog-ng ..."
+    cp -rf $RSDEST/syslog-ng $SYSLOGCONF/99-remote.conf
+    echo "Restart syslog-ng ..."
+    service syslog-ng restart
+    echo "Set logrotation ..."
+    cp -rf $RSDEST/logrotate /etc/logrotate.d/remotelog
+    echo "Activate colortail regex ..."
+    cp -rf $RSDEST/colortail /etc/colortail/conf.colortail
+    echo "Deploying application for CLI logging ..."
+    cp -rf $RSDEST/rsview $RSBIN/rsview
+    echo "Set permissions for CLI application ..."
+    chmod +x $RSBIN/rsview
+    echo "Deploying installer ..."
+    cp -rf $RSDEST/rsinstaller $RSBIN/rsinstaller
+    echo "Deploy config to $RSCONF/ ..."
+    mkdir $RSCONF/
+    cp -rf $RSDEST/syslog-ng $RSCONF/
+    cp -rf $RSDEST/syslog-ng $RSCONF/syslog-ngdefault
+    cp -rf $RSDEST/logrotate $RSCONF/
+    cp -rf $RSDEST/logrotate $RSCONF/logrotatedefault
+    cp -rf $RSDEST/colortail $RSCONF/
+    cp -rf $RSDEST/colortail $RSCONF/colortaildefault
+    cp -rf $RSDEST/syslog-ng-local $RSCONF/syslog-ng-localdefault
+}
+
+function coreremove() {
+    echo "Check if Remote Syslog is installed ..."
+    check_file "$RSBIN/rsinstaller"
+    echo "Starting core removal ..."
+    echo "Configuring syslog-ng ..."
+    rm -rf $SYSLOGCONF/99-remote.conf
+    if [ -e "$SYSLOGCONF/99-remote-local.conf" ]; then
+        rm -rf $SYSLOGCONF/99-remote-local.conf
+    else
+        echo "No local debug found ..."
+    fi
+    echo "Removing packages syslog-ng ..."
+    apt -y purge syslog-ng colortail
+    apt -y autoremove
+    apt -y install rsyslog
+    echo "Set logrotation ..."
+    rm -rf /etc/logrotate.d/remotelog
+    echo "Remove colortail regex ..."
+    rm -rf /etc/colortail/conf.colortail
+    echo "Remove application for CLI logging ..."
+    rm -rf $RSBIN/rsview
+    echo "Remove config to $RSCONF/ ..."
+    rm -rf $RSCONF
+    echo "Remove $RSDEST"
+    rm -rf $RSDEST
+    echo "Remove installer ..."
+    rm -rf $RSBIN/rsinstaller
+	echo "Move log files ..."
+	cp -rf $VLOG/remote_syslog $VLOG/remote_syslog_uninstall && rm -rf $VLOG/remote_syslog
+	echo "Moved files to $VLOG/remote_syslog_uninstall .."
+    if [ -e "$APACHCONF/loaddata.php" ]; then
+        legacyguiremove
+    else
+        echo "No GUI found, remove done ..."
+        exit
+    fi
+}
+
+function upgrade() {
+   echo "Check if Remote Syslog is installed ..."
+   check_file $RSBIN/rsinstaller
+   echo "Starting upgrade ..."
+   echo "Download installation ..."
+   git clone --branch master https://github.com/tslenter/Remote-Syslog-Version-2-Basic.git $RSTMP/rs
+   echo "
+   if [ -d "$RSTMP/rs" ]; then
+      echo "Continue installation ..."
+   else
+      echo "Clone not successfull ..."
+      exit
+   fi
+   cp -rf $RSTMP/rs/* $RSDEST
+   rm -rf $RSPATH
+   echo "Start update ..."
+   echo "Deploying application for CLI logging ..."
+   cp -rf $RSDEST/rsview $RSBIN/rsview
+   echo "Set permissions for CLI application ..."
+   chmod +x $RSBIN/rsview
+   echo "Deploying installer ..."
+   cp -rf $RSDEST/rsinstaller $RSBIN/rsinstaller
+   echo "Set permissions for installer ..."
+   chmod +x $RSBIN/rsinstaller
+   echo "Set default configuration in $RSCONF/ ..."
+   cp -rf $RSDEST/syslog-ng $RSCONF/syslog-ngdefault
+   cp -rf $RSDEST/logrotate $RSCONF/logrotatedefault
+   cp -rf $RSDEST/colortail $RSCONF/colortaildefault
+   echo "Copy upgrade file to $RSTMP/ ..."
+   cp -rf $RSDEST/extraupgrade $RSTMP/extraupgrade
+   chmod +x $RSTMP/extraupgrade
+   $RSTMP/extraupgrade
+   echo "Remove update file ..."
+   rm -rf $RSTMP/extraupgrade
+   echo "Remove upgrade folder ..."
+   rm -rf $RSTMP/rs
+   echo "Restart syslog-ng ..."
+   service syslog-ng restart
+}
+
+function changedefault() {
+   echo "Reconfigure default values ..."
+   cp -rf $RSCONF/syslog-ng $SYSLOGCONF/99-remote.conf
+   echo "Check if mysql for GUI is deployed ..."
+   guirestorechange $SYSLOGCONF/991-remote-mysql.conf
+   echo "Restart syslog-ng ..."
+   service syslog-ng restart
+   echo "Set logrotation ..."
+   cp -rf $RSCONF/logrotate /etc/logrotate.d/remotelog
+   echo "Activate colortail regex ..."
+   cp -rf $RSCONF/colortail /etc/colortail/conf.colortail
+}
+
+function restoredefault() {
+   echo "Restore default syslog-ng values..."
+   cp -rf $RSCONF/syslog-ngdefault $SYSLOGCONF/99-remote.conf
+   echo "Restore SQL for default GUI if deployed ..."
+   guirestoredefault $SYSLOGCONF/991-remote-mysql.conf
+   echo "Restart syslog-ng ..."
+   service syslog-ng restart
+   echo "Restore default logrotation ..."
+   cp -rf $RSCONF/logrotatedefault /etc/logrotate.d/remotelog
+   echo "Restore default colortail regex ..."
+   cp -rf $RSCONF/colortaildefault /etc/colortail/conf.colortail
+}
+
+function startdebug() {
+   echo "Activate local syslog for debug ..."
+   cp -rf $RSCONF/syslog-ng-localdefault $SYSLOGCONF/99-remote-local.conf
+   echo "Restart syslog-ng ..."
+   service syslog-ng restart
+}
+
+function stopdebug() {
+   echo "Deactivate local syslog for debug ..."
+   rm -rf $SYSLOGCONF/99-remote-local.conf
+   echo "Restart syslog-ng ..."
+   service syslog-ng restart
+}
+
+function extentphplimit() {
+   echo "Extent PHP limit to 512M ..."
+   check_file $APACHPHP/php.ini
+   echo "Setting PHP limit to 512M ..."
+   sed -i '/memory_limit/c\\memory_limit = 512M' $APACHPHP/php.ini
+   echo "Restarting webservices ..."
+   service apache2 restart
+}
+
+function restorephplimit() {
+   echo "Restoring PHP limit to default values 128M ..."
+   check_file $APACHPHP/php.ini
+   echo "Setting PHP limit to 128M ..."
+   sed -i '/memory_limit/c\\memory_limit = 128M' $APACHPHP/php.ini
+   echo "Restarting webservices ..."
+   service apache2 restart
+}
+
+function quit() {
+   echo "Thank you for using Remote Syslog ..."
+}
+
+clear
+echo "Setting up environment ..."
+USERNAME=rs
+PASS=$(date +%s | sha256sum | base64 | head -c 32 ; echo)
+RSCONF=/opt/remotesyslog
+RSPATH=$(pwd)
+RSDEST=/opt/RS
+SYSLOGCONF=/etc/syslog-ng/conf.d
+APACHCONF=/var/www/html
+APACONFIG=/etc/apache2/sites-available
+VLOG=/var/log
+RSBIN=/usr/bin
+RSTMP=/tmp
+APACHPHP=/etc/php/7.[0-9]/apache2
+cp -rf $RSPATH $RSDEST
+
+clear
+banner
+PS3='Please enter your choice: '
+options=("Core installation" "Core removal" "Upgrade" "Reconfigure services" "Restore default configuration" "Add local syslog to Remote Syslog" "Remove local syslog to Remote Syslog" "Set new memory PHP limit of 512M" "Set default PHP memory limit of 128M" "Install legacy GUI" "Remove legacy GUI" "Quit")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "Core installation")
+		clear
+		banner
+        debpackage
+		pre_install
+		coreinstall
+		checkinstallationcore
+		exit
+		;;
+		"Core removal")
+		clear
+		banner
+		coreremove
+		exit
+		;;
+        "Upgrade")
+		clear
+		banner
+		pre_install
+		upgrade
+		checkinstallationcore
+		exit
+		;;
+        "Reconfigure services")
+		clear
+		banner
+		changedefault
+		exit
+		;;
+        "Restore default configuration")
+		clear
+		banner
+		restoredefault
+		exit
+		;;
+        "Add local syslog to Remote Syslog")
+		clear
+		banner
+		startdebug
+		exit
+		;;
+        "Remove local syslog to Remote Syslog")
+		clear
+		banner
+		stopdebug
+		exit
+		;;
+        "Set new memory PHP limit of 512M")
+		clear
+		banner
+		extentphplimit
+		exit
+		;;
+        "Set default PHP memory limit of 128M")
+		clear
+		banner
+		restorephplimit
+		exit
+		;;
+        "Install legacy GUI")
+		clear
+		banner
+        pre_install
+		legacygui
+        exit
+        ;;
+        "Remove legacy GUI")
+        clear
+		banner
+        legacyguiremove
+        exit
+        ;;
+        "Quit")
+		break
+		;;
+        *) echo "Invalid option $REPLY ..." ;;
+    esac
+done
