@@ -1,8 +1,8 @@
 <?php
 /*
 License:
-“Remote Syslog” is a free application what can be used to view syslog messages.
-Copyright (C) 2017 Tom Slenter
+"Remote Syslog" is a free application what can be used to view syslog messages.
+Copyright (C) 2019 Tom Slenter, Ronald Gerits, YouLi
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ E-mail: info@remotesyslog.com
 
 <html>
         <head>
-                <title>Remote Syslog: Version 1.1.3.3</title>
+                <title>Remote Syslog: Version ALPHA v2.0.0</title>
         </head>
 	<body>
 		<?php $output = shell_exec('tail -n 30 /var/log/remote_syslog/remote_syslog.log'); echo "<pre>$output</pre>"; ?>
