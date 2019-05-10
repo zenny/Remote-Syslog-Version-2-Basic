@@ -82,6 +82,8 @@ fi
 }
 
 function freegui() {
+    echo "Check if free GUI is installed"
+    check_file_reverse $APACHCONF/loaddata.php
     echo "Starting installation free GUI ..."
     apt -y install apache2 apache2-utils php libapache2-mod-php
     check_package "apache2"
