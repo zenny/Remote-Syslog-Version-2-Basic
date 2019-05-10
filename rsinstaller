@@ -259,6 +259,31 @@ function coreremove() {
     fi
 }
 
+function guiupgrade() {
+if [ -e "$APACHCONF/loaddata.php" ]; then
+    check_file $APACHCONF/loaddata.php
+    echo "Starting upgrade free GUI ..."
+    check_package "apache2"
+    check_package "apache2-utils"
+    check_package "php"
+    check_package "libapache2-mod-php"
+    cp -rf $RSDEST/favicon.ico $APACHCONF/
+    cp -rf $RSDEST/index.php $APACHCONF/
+    cp -rf $RSDEST/indexs.php $APACHCONF/
+    cp -rf $RSDEST/jquery-latest.js $APACHCONF/
+    cp -rf $RSDEST/loaddata.php $APACHCONF/
+    check_file $APACHCONF/favicon.ico
+    check_file $APACHCONF/index.php
+    check_file $APACHCONF/indexs.php
+    check_file $APACHCONF/jquery-latest.js
+    check_file $APACHCONF/loaddata.php
+    echo "Done ..."
+else
+   echo "No GUI found, upgrade done ..."
+   exit
+fi
+}
+
 function upgrade() {
    echo "Check if Remote Syslog is installed ..."
    check_file $RSBIN/rsinstaller
@@ -297,6 +322,7 @@ function upgrade() {
    rm -rf $RSTMP/rs
    echo "Restart syslog-ng ..."
    service syslog-ng restart
+   guiupgrade
 }
 
 function changedefault() {
