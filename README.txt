@@ -45,7 +45,7 @@ b. Run the following commands:
     - cd Remote-Syslog-Version-2-Basic
     - chmod +x rsinstaller
     - ./rsinstaller
-    - Chose option 1 to install the core
-    - Chose option 10 to install the free GUI
+    - Choose option 1 to install the core
+    - Choose option 10 to install the free GUI
 
 6. More information: https://www.remotesyslog.com/
