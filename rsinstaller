@@ -588,7 +588,9 @@ VLOG=/var/log
 RSBIN=/usr/bin
 RSTMP=/tmp
 APACHPHP=/etc/php/7.[0-9]/apache2
-if [ -e "$RSPATH/rsinstaller" ]; then
+if [ -e $RSBIN/rsinstaller ]; then
+   echo "rsinstaller run from $RSBIN, going for $RSDEST environment ..."
+elif [ -e $RSPATH/rsinstaller ]; then
    echo "rsinstaller found in local directory, copy to $RSDEST started ..."
    cp -rf $RSPATH $RSDEST
    mv $RSDEST/defaultenv $RSDEST/.env
