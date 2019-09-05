@@ -297,7 +297,8 @@ function coreremove() {
 }
 
 
-function guiupgrade() { if [ -e "$APACHCONF/loaddata.php" ]; then
+function guiupgrade() {
+if [ -e "$APACHCONF/loaddata.php" ]; then
     check_file $APACHCONF/loaddata.php
     echo "Starting installation legacy GUI ..."
     check_package "apache2"
@@ -587,7 +588,13 @@ VLOG=/var/log
 RSBIN=/usr/bin
 RSTMP=/tmp
 APACHPHP=/etc/php/7.[0-9]/apache2
-cp -rf $RSPATH $RSDEST
+if [ -e "$RSPATH/rsinstaller" ]; then
+   echo "rsinstaller found in local directory, copy to $RSDEST started ..."
+   cp -rf $RSPATH $RSDEST
+   mv $RSDEST/defaultenv $RSDEST/.env
+else
+   echo "No local rsinstaller found, going for $RSDEST environment ..."
+fi
 clear
 banner
 PS3='Please enter your choice: '
