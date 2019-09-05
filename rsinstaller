@@ -347,10 +347,11 @@ elif [ -e $SYSLOGCONF/991-remote-mysql.conf ]; then
     runuser -l rs -c "mkdir $RSTMP/rs_git/"
     echo "Upgrade GUI ..."
     git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
-    if [ -e $RSTMP/rs_git/rsinstaller ]; then
+    if [ -e $RSTMP/rs_git/composer.json ]; then
        echo "Continue installation ..."
     else
        echo "Clone not successfull ..."
+       rm -rf $RSTMP/rs_git
        exit
     fi
     runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
@@ -530,10 +531,11 @@ function newgui() {
    echo "Deploy project ..."
    runuser -l rs -c "mkdir $RSTMP/rs_git/"
    git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
-   if [ -e $RSTMP/rs_git/rsinstaller ]; then
+   if [ -e $RSTMP/rs_git/composer.json ]; then
       echo "Continue installation ..."
    else
       echo "Clone not successfull ..."
+      rm -rf $RSTMP/rs_git
       exit
    fi
    runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
