@@ -1,0 +1,3 @@
+CREATE DATABASE syslog;
+GRANT ALL PRIVILEGES ON syslog.* TO 'syslogng'@'localhost' IDENTIFIED BY 'dummy';
+FLUSH PRIVILEGES;

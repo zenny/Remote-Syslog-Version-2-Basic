@@ -36,7 +36,8 @@ It allows you to download a lightweight and response syslog
 server. The basic edition only contains a TUI and the free GUI.
 
 5. Premium version
-There is a Premium version in development.
+There is a Premium version in development. Currently testers are allowed
+to login and download the premium. The premium version is currently in BETA.
 
 6. Security
 The free GUI has no password or SSL enabled by default. To check how 
@@ -51,5 +52,6 @@ b. Run the following commands:
     - ./rsinstaller
     - Choose option 1 to install the core
     - Choose option 10 to install the free GUI
+    - Choose option 12 to install the premium GUI (License required)
 
 8. More information: https://www.remotesyslog.com/

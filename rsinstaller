@@ -23,10 +23,10 @@
 function banner() {
    echo ""
    echo "#################################################"
-   echo "#Remote Syslog Basic                            #"
+   echo "#Remote Syslog                                  #"
    echo "#More information: remotesyslog.com             #"
    echo "#Remote Syslog installation                     #"
-   echo "#Version: 2.0 ALPHA                             #"
+   echo "#Version: 2.0                                   #"
    echo "#Donate XRP: rHdkpJr3qYqBYY3y3S9ZMr4cFGpgP1eM6B #"
    echo "#################################################"
    echo ""
@@ -47,7 +47,7 @@ if [ $? = 0 ]
 then
     echo "Installation found ..."
 else
-    echo "Installation failed, abort ..."
+    echo "Installation failed, abort (Hint: Did you install the core? ..."
     exit
 fi
 }
@@ -71,6 +71,26 @@ else
 fi
 }
 
+function guirestorechange() {
+file=$1
+if [ -e "$file" ]; then
+    echo "GUI found ..."
+    cp -rf $RSCONF/remote-mysql-syslog-ng $SYSLOGCONF/991-remote-mysql.conf
+else
+    echo "GUI not activated ..."
+fi
+}
+
+function guirestoredefault() {
+file=$1
+if [ -e "$file" ]; then
+    echo "GUI found ..."
+    cp -rf $RSCONF/remote-mysql-syslog-ngdefault $SYSLOGCONF/991-remote-mysql.conf
+else
+    echo "GUI not activated ..."
+fi
+}
+
 function check_file_reverse() {
 file=$1
 if [ -e "$file" ]; then
@@ -81,7 +101,20 @@ else
 fi
 }
 
+function check_file_gui() {
+file=$1
+if [ -e "$file" ]; then
+    echo "File: $1 exists, other GUI installed? Exiting ..."
+        exit
+else
+    echo "File: $1 does not exist, continue installation ..."
+fi
+}
+
+
 function freegui() {
+    echo "Check if premium GUI is installed ..."
+    check_file_gui $SYSLOGCONF/991-remote-mysql.conf
     echo "Check if free GUI is installed ..."
     check_file_reverse $APACHCONF/loaddata.php
     echo "Starting installation free GUI ..."
@@ -109,6 +142,8 @@ function freegui() {
 }
 
 function freeguiremove() {
+    echo "Check if premium GUI is installed ..."
+    check_file_gui $SYSLOGCONF/991-remote-mysql.conf
     echo "Check if free GUI is installed"
     check_file $APACHCONF/loaddata.php
     echo "Removing free GUI website ..."
@@ -117,19 +152,19 @@ function freeguiremove() {
     rm -rf $APACHCONF/indexs.php
     rm -rf $APACHCONF/jquery-latest.js
     rm -rf $APACHCONF/loaddata.php
-	rm -rf $APACHCONF/remote_syslog
+    rm -rf $APACHCONF/remote_syslog
     echo "Removing installation free GUI ..."
-	if [ -e "$RSBIN/rsinstaller" ]; then
-	    echo "Core still installed ..."
+    if [ -e "$RSBIN/rsinstaller" ]; then
+        echo "Core still installed ..."
 		apt -y purge apache2 apache2-utils php libapache2-mod-php
 		apt -y install syslog-ng
 		apt -y autoremove
-	else
+    else
 		echo "No core found ..."
 	    apt -y purge apache2 apache2-utils php libapache2-mod-php
 		apt -y install rsyslog
 		apt -y autoremove
-	fi
+    fi
     echo "Done ..."
 }
 
@@ -253,16 +288,18 @@ function coreremove() {
 	echo "Moved files to $VLOG/remote_syslog_uninstall .."
     if [ -e "$APACHCONF/loaddata.php" ]; then
         freeguiremove
+    elif [ -e $SYSLOGCONF/991-remote-mysql.conf ]; then
+        removegui
     else
         echo "No GUI found, remove done ..."
         exit
     fi
 }
 
-function guiupgrade() {
-if [ -e "$APACHCONF/loaddata.php" ]; then
+
+function guiupgrade() { if [ -e "$APACHCONF/loaddata.php" ]; then
     check_file $APACHCONF/loaddata.php
-    echo "Starting upgrade free GUI ..."
+    echo "Starting installation legacy GUI ..."
     check_package "apache2"
     check_package "apache2-utils"
     check_package "php"
@@ -278,9 +315,52 @@ if [ -e "$APACHCONF/loaddata.php" ]; then
     check_file $APACHCONF/jquery-latest.js
     check_file $APACHCONF/loaddata.php
     echo "Done ..."
+elif [ -e $SYSLOGCONF/991-remote-mysql.conf ]; then
+    echo "Check packages ..."
+    check_package "mysql-server"
+    check_package "libdbi1"
+    check_package "libdbd-mysql"
+    check_package "php"
+    check_package "php-opcache"
+    check_package "apache2"
+    check_package "libapache2-mod-php"
+    check_package "apache2-utils"
+    check_package "php-json"
+    check_package "php-xml"
+    check_package "php-gd"
+    check_package "php-mysql"
+    check_package "php-mbstring"
+    check_package "php-common"
+    check_package "zip"
+    check_package "unzip"
+    check_package "php-zip"
+    check_package "php-dom"
+    echo "Copy new configuration files ..."
+    cp -rf $RSDEST/remote-mysql-syslog-ng $RSCONF/remote-mysql-syslog-ngdefault
+    cp -rf $RSDEST/remote-mysql-syslog-ng $SYSLOGCONF/991-remote-mysql.conf
+    echo "Check config ..."
+    check_file $SYSLOGCONF/991-remote-mysql.conf
+    check_file $RSCONF/remote-mysql-syslog-ng
+    echo "Restart syslog-ng ..."
+    service syslog-ng restart
+    runuser -l rs -c "mkdir $RSTMP/rs_git/"
+    echo "Upgrade GUI ..."
+    git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
+    runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
+    echo "Remove tmp for git ..."
+    rm -rf $RSTMP/rs_git
+    runuser -l rs -c "cd $APACHCONF/rs && composer install"
+    runuser -l rs -c "php $APACHCONF/rs/artisan migrate"
+    runuser -l rs -c "php $APACHCONF/rs/artisan key:generate"
+    runuser -l rs -c "php $APACHCONF/rs/artisan migrate"
+    echo "Setup permissions ..."
+    chmod -R 775 $APACHCONF/rs/storage
+    echo "Restarting Apache ..."
+    service apache2 restart
+    echo "Upgrade GUI done ..."
 else
-   echo "No GUI found, upgrade done ..."
-   exit
+    echo "No GUI found, upgrade done ..."
+    exit
 fi
 }
 
@@ -328,6 +408,8 @@ function upgrade() {
 function changedefault() {
    echo "Reconfigure default values ..."
    cp -rf $RSCONF/syslog-ng $SYSLOGCONF/99-remote.conf
+   echo "Check if mysql for GUI is deployed ..."
+   guirestorechange $SYSLOGCONF/991-remote-mysql.conf
    echo "Restart syslog-ng ..."
    service syslog-ng restart
    echo "Set logrotation ..."
@@ -339,6 +421,8 @@ function changedefault() {
 function restoredefault() {
    echo "Restore default syslog-ng values..."
    cp -rf $RSCONF/syslog-ngdefault $SYSLOGCONF/99-remote.conf
+   echo "Restore SQL for default GUI if deployed ..."
+   guirestoredefault $SYSLOGCONF/991-remote-mysql.conf
    echo "Restart syslog-ng ..."
    service syslog-ng restart
    echo "Restore default logrotation ..."
@@ -379,6 +463,112 @@ function restorephplimit() {
    service apache2 restart
 }
 
+function newgui() {
+   check_file_gui $APACHCONF/loaddata.php
+   check_file_reverse $SYSLOGCONF/991-remote-mysql.conf
+   echo "Install packages ..."
+   apt -y install mysql-server libdbi1 libdbd-mysql php php-opcache apache2 libapache2-mod-php apache2-utils php-json php-xml php-gd php-mysql php-mbstring php-common zip unzip php-zip php-dom npm
+   check_package "mysql-server"
+   check_package "libdbi1"
+   check_package "libdbd-mysql"
+   check_package "php"
+   check_package "php-opcache"
+   check_package "apache2"
+   check_package "libapache2-mod-php"
+   check_package "apache2-utils"
+   check_package "php-json"
+   check_package "php-xml"
+   check_package "php-gd"
+   check_package "php-mysql"
+   check_package "php-mbstring"
+   check_package "php-common"
+   check_package "zip"
+   check_package "unzip"
+   check_package "php-zip"
+   check_package "php-dom"
+   check_package "npm"
+   echo "Setup composer"
+   EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
+   php -r "copy('http://getcomposer.org/installer', '/tmp/composer-setup.php');"
+   ACTUAL_SIGNATURE="$(php -r "echo hash_file('SHA384', '/tmp/composer-setup.php');")"
+   if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]
+   then
+      >&2 echo 'ERROR: Invalid installer signature'
+      rm /tmp/composer-setup.php
+      exit 1
+   fi
+   php /tmp/composer-setup.php --install-dir=/usr/bin --filename=composer
+   rm /tmp/composer-setup.php
+   echo "Replacing dummy password for SQL, Laravel and syslog-ng"
+   sed -i "s|\dummy|${PASS}|" $RSDEST/syslog_ng.sql
+   sed -i "s|\dummy|${PASS}|" $RSDEST/remote-mysql-syslog-ng
+   sed -i "s|\dummy|${PASS}|" $RSDEST/.env
+   echo "Setup SQL ..."
+   mysql -u root < $RSDEST/syslog_ng.sql
+   echo "Copy new syslog-ng configuration ..."
+   cp -rf $RSDEST/remote-mysql-syslog-ng $RSCONF/remote-mysql-syslog-ng
+   cp -rf $RSDEST/remote-mysql-syslog-ng $RSCONF/remote-mysql-syslog-ngdefault
+   cp -rf $RSDEST/remote-mysql-syslog-ng $SYSLOGCONF/991-remote-mysql.conf
+   check_file $SYSLOGCONF/991-remote-mysql.conf
+   check_file $RSCONF/remote-mysql-syslog-ngdefault
+   check_file $RSCONF/remote-mysql-syslog-ng
+   echo "Restart syslog-ng ..."
+   service syslog-ng restart
+   useradd -m -s /bin/bash -p $(openssl passwd -1 $PASS) -g www-data $USERNAME
+   echo "Create composer project directory ..."
+   mkdir $APACHCONF/rs
+   chown $USERNAME $APACHCONF/rs
+   chgrp -R www-data $APACHCONF/rs
+   echo "Deploy project ..."
+   runuser -l rs -c "mkdir $RSTMP/rs_git/"
+   git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
+   runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
+   runuser -l rs -c "cp -rf $RSDEST/.env $APACHCONF/rs"
+   echo "Remove tmp for git ..."
+   rm -rf $RSTMP/rs_git
+   runuser -l rs -c "cd $APACHCONF/rs && composer install"
+   runuser -l rs -c "php $APACHCONF/rs/artisan migrate"
+   runuser -l rs -c "php $APACHCONF/rs/artisan key:generate"
+   runuser -l rs -c "php $APACHCONF/rs/artisan migrate"
+   echo "Setup permissions ..."
+   chmod -R 775 $APACHCONF/rs/storage
+   echo "Add user to www-data ..."
+   usermod -g www-data rs
+   echo "Setup Apache ..."
+   cp -rf $RSDEST/laravel.conf $APACONFIG
+   a2dissite 000-default.conf
+   a2ensite laravel.conf
+   a2enmod rewrite
+   echo "Restarting Apache ..."
+   service apache2 restart
+   echo "Your password for user: $USERNAME is $PASS"
+   SQLPASS=$(grep -o -P '(?<=").*(?=")' $RSDEST/remote-mysql-syslog-ng | grep "^.\{32\}$")
+   echo "Your SQL password for user: syslogng is $SQLPASS"
+}
+
+function removegui() {
+   check_file_gui $APACHCONF/loaddata.php
+   check_file $SYSLOGCONF/991-remote-mysql.conf
+   check_package "apache2"
+   echo "Remove configuation ..."
+   rm -rf $RSCONF/remote-mysql-syslog-ng
+   rm -rf $RSCONF/remote-mysql-syslog-ngdefault
+   rm -rf $SYSLOGCONF/991-remote-mysql.conf
+   echo "Drop database ..."
+   mysqladmin -f -u root drop syslog
+   echo "Remove GUI"
+   rm -rf $APACHCONF/rs
+   rm -rf /usr/bin/composer
+   a2dissite laravel.conf
+   rm -rf $APACONFIG/laravel.conf
+   echo "Remove packages ..."
+   apt -y purge composer mysql-server libdbi1 libdbd-mysql php php-opcache apache2 libapache2-mod-php apache2-utils php-json php-xml php-gd php-mysql php-mbstring php-common zip unzip php-zip php-dom npm
+   apt -y install syslog-ng
+   apt -y autoremove
+   echo "Removing user $USERNAME"
+   userdel -r rs
+}
+
 function quit() {
    echo "Thank you for using Remote Syslog ..."
 }
@@ -398,24 +588,23 @@ RSBIN=/usr/bin
 RSTMP=/tmp
 APACHPHP=/etc/php/7.[0-9]/apache2
 cp -rf $RSPATH $RSDEST
-
 clear
 banner
 PS3='Please enter your choice: '
-options=("Core installation" "Core removal" "Upgrade" "Reconfigure services" "Restore default configuration" "Add local syslog to Remote Syslog" "Remove local syslog to Remote Syslog" "Set new memory PHP limit of 512M" "Set default PHP memory limit of 128M" "Install free GUI" "Remove free GUI" "Quit")
+options=("Core installation" "Core removal" "Upgrade" "Reconfigure services" "Restore default configuration" "Add local syslog to Remote Syslog" "Remove local syslog to Remote Syslog" "Set new memory PHP limit of 512M" "Set default PHP memory limit of 128M" "Install free GUI" "Remove free GUI" "Install GUI" "Remove GUI" "Quit")
 select opt in "${options[@]}"
 do
     case $opt in
         "Core installation")
 		clear
 		banner
-        debpackage
+        	debpackage
 		pre_install
 		coreinstall
 		checkinstallationcore
 		exit
 		;;
-		"Core removal")
+	"Core removal")
 		clear
 		banner
 		coreremove
@@ -468,16 +657,29 @@ do
         "Install free GUI")
 		clear
 		banner
-        pre_install
+        	pre_install
 		freegui
-        exit
-        ;;
+        	exit
+        	;;
         "Remove free GUI")
-        clear
+        	clear
 		banner
-        freeguiremove
-        exit
-        ;;
+        	freeguiremove
+        	exit
+        	;;
+	"Install GUI")
+        	clear
+		banner
+		pre_install
+		newgui
+		exit
+		;;
+        "Remove GUI")
+		clear
+		banner
+		removegui
+		exit
+		;;
         "Quit")
 		break
 		;;
