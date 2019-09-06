@@ -17,7 +17,7 @@
 #along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #For more information contact the author:
-#Name author: Tom Slenter
+#Name author: Tom Slenter, Ronald Gerits, You Li
 #E-mail: info@remotesyslog.com
 
 echo "Installer copy ..." 
