@@ -225,9 +225,9 @@ function pre_install() {
 
 function coreinstall() {
     echo "Starting core installation ..."
-    if [ -e $RSBIN/rsinstaller ]; then
+    if [ ! -e $RSBIN/rsinstaller ]; then
        echo "rsinstaller found in bin directory, continue ..."   
-    elif [ -e $RSPATH/rsinstaller ]; then
+    elif [ ! -e $RSPATH/rsinstaller ]; then
        echo "Oh no, did you run the installer in the current directory? ..."
     else
        echo "Unknown error ..."
