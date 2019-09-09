@@ -225,6 +225,13 @@ function pre_install() {
 
 function coreinstall() {
     echo "Starting core installation ..."
+    if [ -e $RSBIN/rsinstaller ]; then
+       echo "rsinstaller found in bin directory, continue ..."   
+    elif [ -e $RSPATH/rsinstaller ]; then
+       echo "Oh no, did you run the installer in the current directory? ..."
+    else
+       echo "Unknown error ..."
+    fi
     echo "Creating dummy remote_syslog file ..."
     mkdir $VLOG/remote_syslog/
     touch $VLOG/remote_syslog/remote_syslog.log
