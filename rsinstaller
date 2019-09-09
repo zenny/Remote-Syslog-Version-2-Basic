@@ -528,7 +528,7 @@ function newgui() {
    echo "Replacing dummy password for SQL, Laravel and syslog-ng"
    sed -i "s|\dummy|${PASS}|" $RSDEST/syslog_ng.sql
    sed -i "s|\dummy|${PASS}|" $RSDEST/remote-mysql-syslog-ng
-   sed -i "s|\dummy|${PASS}|" $RSDEST/.env
+   sed -i "s|\dummy|${PASS}|" $APACHCONF/rs/.env
    echo "Setup SQL ..."
    mysql -u root < $RSDEST/syslog_ng.sql
    echo "Copy new syslog-ng configuration ..."
