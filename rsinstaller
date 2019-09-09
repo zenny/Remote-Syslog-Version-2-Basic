@@ -173,6 +173,14 @@ function debpackage() {
     check_file_reverse $RSBIN/rsinstaller
     echo "Notice: This installation is tested for Ubuntu Server 18.04 LTS and Debian 9.x ..."
     echo "Starting installation ..."
+    if [ -e $RSBIN/rsinstaller ]; then
+          echo "rsinstaller found in $RSBIN directory, continue ..."
+    elif [ -e $RSPATH/rsinstaller ]; then
+          echo "Installer in the current directory, continue ..."
+    else
+          echo "Did you run the installer from the right directory? ..."
+          exit
+    fi
     echo "Update installer cache ..."
     if apt-add-repository multiverse > /dev/null 2>&1 ; then
          printf 'Multiverse command succeeded\n'
