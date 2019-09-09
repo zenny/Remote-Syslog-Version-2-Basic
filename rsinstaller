@@ -501,6 +501,7 @@ function newgui() {
    chown $USERNAME $APACHCONF/rs
    chgrp -R www-data $APACHCONF/rs
    echo "Deploy project ..."
+   useradd -m -s /bin/bash -p $(openssl passwd -1 $PASS) -g www-data $USERNAME
    runuser -l rs -c "mkdir $RSTMP/rs_git/"
    git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
    if [ -e $RSTMP/rs_git/composer.json ]; then
@@ -539,7 +540,6 @@ function newgui() {
    check_file $RSCONF/remote-mysql-syslog-ng
    echo "Restart syslog-ng ..."
    service syslog-ng restart
-   useradd -m -s /bin/bash -p $(openssl passwd -1 $PASS) -g www-data $USERNAME
    echo "Remove tmp for git ..."
    rm -rf $RSTMP/rs_git
    runuser -l rs -c "cd $APACHCONF/rs && composer install"
