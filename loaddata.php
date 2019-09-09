@@ -24,7 +24,7 @@ E-mail: info@remotesyslog.com
 
 <html>
         <head>
-                <title>Remote Syslog: Version v2.0.0</title>
+                <title>Remote Syslog: Version v2.0.1</title>
         </head>
 	<body>
 		<?php $output = shell_exec('tail -n 30 /var/log/remote_syslog/remote_syslog.log'); echo "<pre>$output</pre>"; ?>

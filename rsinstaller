@@ -26,7 +26,7 @@ function banner() {
    echo "#Remote Syslog                                  #"
    echo "#More information: remotesyslog.com             #"
    echo "#Remote Syslog installation                     #"
-   echo "#Version: 2.0                                   #"
+   echo "#Version: 2.0.1                                 #"
    echo "#Donate XRP: rHdkpJr3qYqBYY3y3S9ZMr4cFGpgP1eM6B #"
    echo "#################################################"
    echo ""
@@ -296,7 +296,6 @@ function coreremove() {
     fi
 }
 
-
 function guiupgrade() {
 if [ -e "$APACHCONF/loaddata.php" ]; then
     check_file $APACHCONF/loaddata.php
@@ -336,16 +335,8 @@ elif [ -e $SYSLOGCONF/991-remote-mysql.conf ]; then
     check_package "unzip"
     check_package "php-zip"
     check_package "php-dom"
-    echo "Copy new configuration files ..."
-    cp -rf $RSDEST/remote-mysql-syslog-ng $RSCONF/remote-mysql-syslog-ngdefault
-    cp -rf $RSDEST/remote-mysql-syslog-ng $SYSLOGCONF/991-remote-mysql.conf
-    echo "Check config ..."
-    check_file $SYSLOGCONF/991-remote-mysql.conf
-    check_file $RSCONF/remote-mysql-syslog-ng
-    echo "Restart syslog-ng ..."
-    service syslog-ng restart
-    runuser -l rs -c "mkdir $RSTMP/rs_git/"
     echo "Upgrade GUI ..."
+    runuser -l rs -c "mkdir $RSTMP/rs_git/"
     git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
     if [ -e $RSTMP/rs_git/composer.json ]; then
        echo "Continue installation ..."
@@ -355,8 +346,17 @@ elif [ -e $SYSLOGCONF/991-remote-mysql.conf ]; then
        exit
     fi
     runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
+    echo "Copy new configuration files ..."
+    cp -rf $RSDEST/remote-mysql-syslog-ng $RSCONF/remote-mysql-syslog-ngdefault
+    cp -rf $RSDEST/remote-mysql-syslog-ng $SYSLOGCONF/991-remote-mysql.conf
+    echo "Check config ..."
+    check_file $SYSLOGCONF/991-remote-mysql.conf
+    check_file $RSCONF/remote-mysql-syslog-ng
+    echo "Restart syslog-ng ..."
+    service syslog-ng restart
     echo "Remove tmp for git ..."
     rm -rf $RSTMP/rs_git
+    echo "Activate new project ..."
     runuser -l rs -c "cd $APACHCONF/rs && composer install"
     runuser -l rs -c "php $APACHCONF/rs/artisan migrate"
     runuser -l rs -c "php $APACHCONF/rs/artisan key:generate"
@@ -496,6 +496,22 @@ function newgui() {
    check_package "php-zip"
    check_package "php-dom"
    check_package "npm"
+   echo "Create composer project directory ..."
+   mkdir $APACHCONF/rs
+   chown $USERNAME $APACHCONF/rs
+   chgrp -R www-data $APACHCONF/rs
+   echo "Deploy project ..."
+   runuser -l rs -c "mkdir $RSTMP/rs_git/"
+   git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
+   if [ -e $RSTMP/rs_git/composer.json ]; then
+      echo "Continue installation ..."
+   else
+      echo "Clone not successfull ..."
+      rm -rf $RSTMP/rs_git
+      exit
+   fi
+   runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
+   runuser -l rs -c "cp -rf $RSDEST/.env $APACHCONF/rs"
    echo "Setup composer"
    EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
    php -r "copy('http://getcomposer.org/installer', '/tmp/composer-setup.php');"
@@ -524,22 +540,6 @@ function newgui() {
    echo "Restart syslog-ng ..."
    service syslog-ng restart
    useradd -m -s /bin/bash -p $(openssl passwd -1 $PASS) -g www-data $USERNAME
-   echo "Create composer project directory ..."
-   mkdir $APACHCONF/rs
-   chown $USERNAME $APACHCONF/rs
-   chgrp -R www-data $APACHCONF/rs
-   echo "Deploy project ..."
-   runuser -l rs -c "mkdir $RSTMP/rs_git/"
-   git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
-   if [ -e $RSTMP/rs_git/composer.json ]; then
-      echo "Continue installation ..."
-   else
-      echo "Clone not successfull ..."
-      rm -rf $RSTMP/rs_git
-      exit
-   fi
-   runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
-   runuser -l rs -c "cp -rf $RSDEST/.env $APACHCONF/rs"
    echo "Remove tmp for git ..."
    rm -rf $RSTMP/rs_git
    runuser -l rs -c "cd $APACHCONF/rs && composer install"
