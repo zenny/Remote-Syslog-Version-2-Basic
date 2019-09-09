@@ -572,6 +572,7 @@ function removegui() {
    rm -rf $SYSLOGCONF/991-remote-mysql.conf
    echo "Drop database ..."
    mysqladmin -f -u root drop syslog
+   mysql -u root --execute="DROP user 'syslogng'@'localhost';"
    echo "Remove GUI"
    rm -rf $APACHCONF/rs
    rm -rf /usr/bin/composer
