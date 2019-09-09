@@ -530,6 +530,7 @@ function newgui() {
    sed -i "s|\dummy|${PASS}|" $RSDEST/syslog_ng.sql
    sed -i "s|\dummy|${PASS}|" $RSDEST/remote-mysql-syslog-ng
    sed -i "s/${SQLPASS_OLD}/${PASS}/" $RSDEST/remote-mysql-syslog-ng
+   sed -i "s/${SQLPASS_OLD}/${PASS}/" $RSDEST/syslog_ng.sql
    sed -i "s|\dummy|${PASS}|" $APACHCONF/rs/.env
    echo "Setup SQL ..."
    mysql -u root < $RSDEST/syslog_ng.sql
