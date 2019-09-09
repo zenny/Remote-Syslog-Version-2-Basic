@@ -496,12 +496,12 @@ function newgui() {
    check_package "php-zip"
    check_package "php-dom"
    check_package "npm"
-   echo "Create composer project directory ..."
+   echo "Create composer project/user directory ..."
+   useradd -m -s /bin/bash -p $(openssl passwd -1 $PASS) -g www-data $USERNAME
    mkdir $APACHCONF/rs
    chown $USERNAME $APACHCONF/rs
    chgrp -R www-data $APACHCONF/rs
    echo "Deploy project ..."
-   useradd -m -s /bin/bash -p $(openssl passwd -1 $PASS) -g www-data $USERNAME
    runuser -l rs -c "mkdir $RSTMP/rs_git/"
    git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
    if [ -e $RSTMP/rs_git/composer.json ]; then
