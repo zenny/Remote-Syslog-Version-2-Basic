@@ -316,6 +316,17 @@ if [ -e "$APACHCONF/loaddata.php" ]; then
     check_file $APACHCONF/loaddata.php
     echo "Done ..."
 elif [ -e $SYSLOGCONF/991-remote-mysql.conf ]; then
+    echo "Upgrade GUI ..."
+    runuser -l rs -c "mkdir $RSTMP/rs_git/"
+    git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
+    if [ -e $RSTMP/rs_git/composer.json ]; then
+       echo "Continue installation ..."
+    else
+       echo "Clone not successfull ..."
+       rm -rf $RSTMP/rs_git
+       exit
+    fi
+    runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
     echo "Check packages ..."
     check_package "mysql-server"
     check_package "libdbi1"
@@ -335,17 +346,6 @@ elif [ -e $SYSLOGCONF/991-remote-mysql.conf ]; then
     check_package "unzip"
     check_package "php-zip"
     check_package "php-dom"
-    echo "Upgrade GUI ..."
-    runuser -l rs -c "mkdir $RSTMP/rs_git/"
-    git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
-    if [ -e $RSTMP/rs_git/composer.json ]; then
-       echo "Continue installation ..."
-    else
-       echo "Clone not successfull ..."
-       rm -rf $RSTMP/rs_git
-       exit
-    fi
-    runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
     echo "Copy new configuration files ..."
     cp -rf $RSDEST/remote-mysql-syslog-ng $RSCONF/remote-mysql-syslog-ngdefault
     cp -rf $RSDEST/remote-mysql-syslog-ng $SYSLOGCONF/991-remote-mysql.conf
@@ -475,6 +475,22 @@ function restorephplimit() {
 function newgui() {
    check_file_gui $APACHCONF/loaddata.php
    check_file_reverse $SYSLOGCONF/991-remote-mysql.conf
+   echo "Create composer project directory ..."
+   mkdir $APACHCONF/rs
+   chown $USERNAME $APACHCONF/rs
+   chgrp -R www-data $APACHCONF/rs
+   echo "Deploy project ..."
+   runuser -l rs -c "mkdir $RSTMP/rs_git/"
+   git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
+   if [ -e $RSTMP/rs_git/composer.json ]; then
+      echo "Continue installation ..."
+   else
+      echo "Clone not successfull ..."
+      rm -rf $RSTMP/rs_git
+      exit
+   fi
+   runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
+   runuser -l rs -c "cp -rf $RSDEST/.env $APACHCONF/rs"
    echo "Install packages ..."
    apt -y install mysql-server libdbi1 libdbd-mysql php php-opcache apache2 libapache2-mod-php apache2-utils php-json php-xml php-gd php-mysql php-mbstring php-common zip unzip php-zip php-dom npm
    check_package "mysql-server"
@@ -496,22 +512,6 @@ function newgui() {
    check_package "php-zip"
    check_package "php-dom"
    check_package "npm"
-   echo "Create composer project directory ..."
-   mkdir $APACHCONF/rs
-   chown $USERNAME $APACHCONF/rs
-   chgrp -R www-data $APACHCONF/rs
-   echo "Deploy project ..."
-   runuser -l rs -c "mkdir $RSTMP/rs_git/"
-   git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
-   if [ -e $RSTMP/rs_git/composer.json ]; then
-      echo "Continue installation ..."
-   else
-      echo "Clone not successfull ..."
-      rm -rf $RSTMP/rs_git
-      exit
-   fi
-   runuser -l rs -c "cp -rf $RSTMP/rs_git/. $APACHCONF/rs"
-   runuser -l rs -c "cp -rf $RSDEST/.env $APACHCONF/rs"
    echo "Setup composer"
    EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
    php -r "copy('http://getcomposer.org/installer', '/tmp/composer-setup.php');"
