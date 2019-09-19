@@ -339,7 +339,7 @@ elif [ -e $SYSLOGCONF/991-remote-mysql.conf ]; then
     check_package "npm"
     echo "Upgrade GUI ..."
     runuser -l rs -c "mkdir $RSTMP/rs_git/"
-    git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
+    git clone --branch master https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
     if [ -e $RSTMP/rs_git/composer.json ]; then
        echo "Continue installation ..."
     else
