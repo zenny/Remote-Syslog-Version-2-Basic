@@ -335,9 +335,11 @@ elif [ -e $SYSLOGCONF/991-remote-mysql.conf ]; then
     check_package "unzip"
     check_package "php-zip"
     check_package "php-dom"
+    check_package "supervisor"
+    check_package "npm"
     echo "Upgrade GUI ..."
     runuser -l rs -c "mkdir $RSTMP/rs_git/"
-    git clone --branch master https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
+    git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
     if [ -e $RSTMP/rs_git/composer.json ]; then
        echo "Continue installation ..."
     else
@@ -361,6 +363,11 @@ elif [ -e $SYSLOGCONF/991-remote-mysql.conf ]; then
     runuser -l rs -c "php $APACHCONF/rs/artisan migrate"
     runuser -l rs -c "php $APACHCONF/rs/artisan key:generate"
     runuser -l rs -c "php $APACHCONF/rs/artisan migrate"
+    echo "Upgrade supervisor ..."
+    cp -rf $RSDEST/laravel-queue-worker.conf /etc/supervisor/conf.d/laravel-queue-worker.conf
+    supervisorctl reread
+    supervisorctl update
+    supervisorctl start laravel-queue-worker:*
     echo "Setup permissions ..."
     chmod -R 775 $APACHCONF/rs/storage
     echo "Restarting Apache ..."
@@ -476,7 +483,7 @@ function newgui() {
    check_file_gui $APACHCONF/loaddata.php
    check_file_reverse $SYSLOGCONF/991-remote-mysql.conf
    echo "Install packages ..."
-   apt -y install mysql-server libdbi1 libdbd-mysql php php-opcache apache2 libapache2-mod-php apache2-utils php-json php-xml php-gd php-mysql php-mbstring php-common zip unzip php-zip php-dom npm
+   apt -y install mysql-server libdbi1 libdbd-mysql php php-opcache apache2 libapache2-mod-php apache2-utils php-json php-xml php-gd php-mysql php-mbstring php-common zip unzip php-zip php-dom npm supervisor
    check_package "mysql-server"
    check_package "libdbi1"
    check_package "libdbd-mysql"
@@ -496,6 +503,7 @@ function newgui() {
    check_package "php-zip"
    check_package "php-dom"
    check_package "npm"
+   check_package "supervisor"
    echo "Create composer project/user directory ..."
    useradd -m -s /bin/bash -p $(openssl passwd -1 $PASS) -g www-data $USERNAME
    mkdir $APACHCONF/rs
@@ -503,7 +511,7 @@ function newgui() {
    chgrp -R www-data $APACHCONF/rs
    echo "Deploy project ..."
    runuser -l rs -c "mkdir $RSTMP/rs_git/"
-   git clone --branch feature/result https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
+   git clone --branch master https://github.com/rgerits/syslog_gui.git $RSTMP/rs_git
    if [ -e $RSTMP/rs_git/composer.json ]; then
       echo "Continue installation ..."
    else
@@ -527,11 +535,11 @@ function newgui() {
    rm /tmp/composer-setup.php
    echo "Replacing dummy password for SQL, Laravel and syslog-ng"
    SQLPASS_OLD=$(grep -o -P '(?<=").*(?=")' $RSDEST/remote-mysql-syslog-ng | grep "^.\{32\}$")
-   sed -i "s|\dummy|${PASS}|" $RSDEST/syslog_ng.sql
-   sed -i "s|\dummy|${PASS}|" $RSDEST/remote-mysql-syslog-ng
-   sed -i "s/${SQLPASS_OLD}/${PASS}/" $RSDEST/remote-mysql-syslog-ng
-   sed -i "s/${SQLPASS_OLD}/${PASS}/" $RSDEST/syslog_ng.sql
-   sed -i "s|\dummy|${PASS}|" $APACHCONF/rs/.env
+   sed -i "s|\dummy|${PASS}|" $RSDEST/syslog_ng.sql >/dev/null 2>&1
+   sed -i "s|\dummy|${PASS}|" $RSDEST/remote-mysql-syslog-ng >/dev/null 2>&1
+   sed -i "s/${SQLPASS_OLD}/${PASS}/" $RSDEST/remote-mysql-syslog-ng >/dev/null 2>&1
+   sed -i "s/${SQLPASS_OLD}/${PASS}/" $RSDEST/syslog_ng.sql >/dev/null 2>&1
+   sed -i "s|\dummy|${PASS}|" $APACHCONF/rs/.env >/dev/null 2>&1
    echo "Setup SQL ..."
    mysql -u root < $RSDEST/syslog_ng.sql
    echo "Copy new syslog-ng configuration ..."
@@ -560,6 +568,11 @@ function newgui() {
    a2enmod rewrite
    echo "Restarting Apache ..."
    service apache2 restart
+   echo "Install supervisor ..."
+   cp -rf $RSDEST/laravel-queue-worker.conf /etc/supervisor/conf.d/laravel-queue-worker.conf
+   supervisorctl reread
+   supervisorctl update
+   supervisorctl start laravel-queue-worker:*
    echo "Your password for user: $USERNAME is $PASS"
    SQLPASS=$(grep -o -P '(?<=").*(?=")' $RSDEST/remote-mysql-syslog-ng | grep "^.\{32\}$")
    echo "Your SQL password for user: syslogng is $SQLPASS"
